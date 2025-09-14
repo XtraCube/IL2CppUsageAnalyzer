@@ -16,6 +16,7 @@ public static class Program
         public string ReturnType { get; set; } = string.Empty;
         public int MonoCount { get; set; }
         public int XrefCount { get; set; }
+        public int ThisCount { get; set; }
         public string Type { get; set; } = "Method";
 
         public HashSet<string> Tags { get; set; } = [];
@@ -180,7 +181,7 @@ public static class Program
                     var isProperty = method.IsSpecialName && (method.Name.StartsWith("get_") || method.Name.StartsWith("set_"));
                     var isCompilerGenerated = compilerGeneratedAttr != null || compilerGeneratedTypeAttr != null;
 
-                    var methodUsage = new AnalyzedMethodInfo
+                    var methodInfo = new AnalyzedMethodInfo
                     {
                         ReturnType = Normalizer.NormalizeMonoName(method.ReturnType.FullName),
                         Type = isProperty ? "Property" : "Method",
@@ -188,15 +189,15 @@ public static class Program
 
                     if (isGeneric)
                     {
-                        methodUsage.Tags.Add("generic");
+                        methodInfo.Tags.Add("generic");
                     }
 
                     if (isCompilerGenerated)
                     {
-                        methodUsage.Tags.Add("compiler-generated");
+                        methodInfo.Tags.Add("compiler-generated");
                     }
 
-                    methodRefs.TryAdd(methodName, methodUsage);
+                    methodRefs.TryAdd(methodName, methodInfo);
                 }
             }
         }
@@ -213,17 +214,26 @@ public static class Program
                     var methodName = Normalizer.NormalizeMonoMethod(method);
                     foreach (var instr in method.Body.Instructions)
                     {
+                        if (instr.OpCode == OpCodes.Ldarg_0)
+                        {
+                            if (!methodRefs.TryGetValue(methodName, out var methodInfo))
+                            {
+                                continue;
+                            }
+                            methodInfo.ThisCount += 1;
+                        }
+
                         if (instr.OpCode == OpCodes.Call || instr.OpCode == OpCodes.Callvirt)
                         {
                             if (instr.Operand is MethodReference called)
                             {
                                 var calledName = Normalizer.NormalizeMonoMethod(called);
-                                if (!methodRefs.TryGetValue(calledName, out var methodUsage))
+                                if (!methodRefs.TryGetValue(calledName, out var calledMethodInfo))
                                 {
                                     continue;
                                 }
-                                methodUsage.MonoCount += 1;
-                                methodUsage.MonoUsages.Add(Normalizer.NormalizeMonoMethod(method));
+                                calledMethodInfo.MonoCount += 1;
+                                calledMethodInfo.MonoUsages.Add(Normalizer.NormalizeMonoMethod(method));
                             }
                         }
 
@@ -233,7 +243,7 @@ public static class Program
                             var typeName = constructor.DeclaringType.FullName;
                             if (stateMachineToMethod.TryGetValue(typeName, out var coroutineMethod))
                             {
-                                if (!methodRefs.TryGetValue(coroutineMethod, out var methodUsage))
+                                if (!methodRefs.TryGetValue(coroutineMethod, out var coroutineMethodInfo))
                                 {
                                     continue;
                                 }
@@ -243,8 +253,8 @@ public static class Program
                                     continue;
                                 }
 
-                                methodUsage.MonoCount += 1;
-                                methodUsage.MonoUsages.Add(methodName);
+                                coroutineMethodInfo.MonoCount += 1;
+                                coroutineMethodInfo.MonoUsages.Add(methodName);
                             }
                         }
                     }
