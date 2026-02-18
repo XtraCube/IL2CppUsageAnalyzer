@@ -34,19 +34,23 @@ public static class Program
 
     public static void Main(string[] args)
     {
-        if (args.Length != 2)
+        if (args.Length != 3)
         {
-            Console.WriteLine("Usage: IL2CppUsageAnalyzer <path to mono assembly csharp> <path to xref dump>");
+            Console.WriteLine("Usage: IL2CppUsageAnalyzer <path to mono assembly csharp> <path to xref dump> <output file>");
             return;
         }
+
         var monoAssemblyPath = args[0];
         var xrefDump = args[1];
+        var outputFile = args[2];
 
         if (!File.Exists(monoAssemblyPath) || !File.Exists(xrefDump))
         {
             Console.WriteLine("Invalid file paths provided.");
             return;
         }
+
+        Directory.CreateDirectory(Path.GetDirectoryName(outputFile) ?? throw new InvalidOperationException("Invalid output file."));
 
         var methodInfos = AnalyzeMethods(monoAssemblyPath);
         var xrefMethodRefs = ParseXrefs(xrefDump);
@@ -119,10 +123,9 @@ public static class Program
         Console.WriteLine($"Methods inlined: {inlinedCount}");
         Console.WriteLine($"Methods used by inline: {usedByInlineCount}");
         Console.WriteLine();
-        const string resultsFile = "method_analysis_results.json";
         var json = JsonSerializer.Serialize(normalized, new JsonSerializerOptions { WriteIndented = true });
-        File.WriteAllText(resultsFile, json);
-        Console.WriteLine($"Analysis results saved to {resultsFile}");
+        File.WriteAllText(outputFile, json);
+        Console.WriteLine($"Analysis results saved to {outputFile}");
     }
 
     private static Dictionary<string, XrefInfo> ParseXrefs(string xrefDumpPath)
