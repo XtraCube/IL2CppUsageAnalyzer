@@ -41,45 +41,57 @@ public static class Program
         {
             foreach (var type in MonoUtils.GetAllTypes(module))
             {
-                string? typeRef = null;
-                foreach (var attr in type.CustomAttributes.Where(x=>x.AttributeType.FullName == HarmonyPatchAttributeFullName))
-                {
-                    ScanAttribute(attr);
-                    typeRef = attr.ConstructorArguments.Select(x => x.Value).OfType<TypeReference>().FirstOrDefault()?.FullName;
-                }
+                // Collect stacked HarmonyPatch attributes on the type
+                var typePatchAttrs = type.CustomAttributes
+                    .Where(x => x.AttributeType.FullName == HarmonyPatchAttributeFullName)
+                    .ToList();
 
                 foreach (var method in type.Methods)
                 {
-                    foreach (var attr in method.CustomAttributes.Where(x=>x.AttributeType.FullName == HarmonyPatchAttributeFullName))
-                    {
-                        if (typeRef != null)
-                        {
-                            var methodRef = attr.ConstructorArguments.Select(x => x.Value).OfType<string>().FirstOrDefault();
-                            if (methodRef != null)
-                            {
-                                methodNames.Add(Normalizer.NormalizeMonoName($"{typeRef}::{methodRef}"));
-                            }
-                        }
-                        ScanAttribute(attr);
-                    }
+                    // Collect stacked HarmonyPatch attributes on the method
+                    var methodPatchAttrs = method.CustomAttributes
+                        .Where(x => x.AttributeType.FullName == HarmonyPatchAttributeFullName)
+                        .ToList();
+
+                    // Combine type and method attributes for stacked usage
+                    var allAttrs = new List<CustomAttribute>();
+                    allAttrs.AddRange(typePatchAttrs);
+                    allAttrs.AddRange(methodPatchAttrs);
+
+                    if (allAttrs.Count <= 0) continue;
+                    var patchInfo = ParseHarmonyPatchAttributes(allAttrs);
+                    if (patchInfo.TargetType == null || patchInfo.MethodName == null) continue;
+                    var normalized = Normalizer.NormalizeMonoName(
+                        $"{patchInfo.TargetType.FullName}::{patchInfo.MethodName}"
+                    );
+                    methodNames.Add(normalized);
                 }
             }
         }
 
         methodNames = methodNames.Distinct().OrderBy(x=>x).ToList();
         return methodNames;
+    }
 
-        void ScanAttribute(CustomAttribute attribute)
+    // Helper to parse stacked HarmonyPatch attributes
+    private static (TypeReference? TargetType, string? MethodName) ParseHarmonyPatchAttributes(List<CustomAttribute> attrs)
+    {
+        TypeReference? targetType = null;
+        string? methodName = null;
+
+        foreach (var arg in attrs.SelectMany(attr => attr.ConstructorArguments))
         {
-            var typeRef = attribute.ConstructorArguments.Select(x => x.Value).OfType<TypeReference>().FirstOrDefault();
-            if (typeRef != null)
+            switch (arg.Value)
             {
-                var methodRef = attribute.ConstructorArguments.Select(x => x.Value).OfType<string>().FirstOrDefault();
-                if (methodRef != null)
-                {
-                    methodNames.Add(Normalizer.NormalizeMonoName($"{typeRef.FullName}::{methodRef}"));
-                }
+                case TypeReference tr:
+                    targetType = tr;
+                    break;
+                case string s:
+                    methodName = s;
+                    break;
             }
         }
+
+        return (targetType, methodName);
     }
 }
