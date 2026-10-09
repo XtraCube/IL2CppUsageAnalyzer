@@ -6,6 +6,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HarmonyPatchAnalyzer", "Har
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NameNormalizer", "NameNormalizer\NameNormalizer.csproj", "{9BEDDEA5-FA45-49B1-B7F4-F1C2F72B1A1D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HarmonyPatchAnalyzer.Wasm", "HarmonyPatchAnalyzer.Wasm\HarmonyPatchAnalyzer.Wasm.csproj", "{BFE9DF03-A490-4C99-BDB7-09B27075F3E4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +26,9 @@ Global
 		{9BEDDEA5-FA45-49B1-B7F4-F1C2F72B1A1D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9BEDDEA5-FA45-49B1-B7F4-F1C2F72B1A1D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9BEDDEA5-FA45-49B1-B7F4-F1C2F72B1A1D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BFE9DF03-A490-4C99-BDB7-09B27075F3E4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BFE9DF03-A490-4C99-BDB7-09B27075F3E4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BFE9DF03-A490-4C99-BDB7-09B27075F3E4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BFE9DF03-A490-4C99-BDB7-09B27075F3E4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
